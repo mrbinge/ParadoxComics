@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Paradox Comics — Админка</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#08080c; --bg-panel:#101018; --bg-panel-2:#16161f;
+    --ink:#f4f2ee; --muted:#8d8d99; --muted-2:#56565f;
+    --accent:#ff2158; --line:rgba(244,242,238,.12); --line-soft:rgba(244,242,238,.06);
+    --display:'Oswald',sans-serif; --body:'Manrope',sans-serif; --mono:'JetBrains Mono',monospace;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ background:var(--bg); color:var(--ink); font-family:var(--body); line-height:1.5; padding:32px 24px 120px; }
+  .wrap{ max-width:920px; margin:0 auto; }
+  h1{ font-family:var(--display); text-transform:uppercase; font-size:28px; letter-spacing:.02em; }
+  h1 span{ color:var(--accent); }
+  .sub{ color:var(--muted); font-size:14px; margin-top:8px; max-width:60ch; }
+  .mono{ font-family:var(--mono); }
+
+  .toolbar{ display:flex; gap:12px; flex-wrap:wrap; margin:28px 0; }
+  .btn{
+    font-family:var(--mono); font-size:13px; letter-spacing:.04em; text-transform:uppercase;
+    padding:12px 20px; border:1px solid var(--line); background:transparent; color:var(--ink);
+    cursor:pointer; transition:border-color .2s ease, color .2s ease;
+  }
+  .btn:hover{ border-color:var(--accent); color:var(--accent); }
+  .btn.solid{ background:var(--accent); border-color:var(--accent); color:#0a0a0d; font-weight:600; }
+  .btn.solid:hover{ color:#0a0a0d; opacity:.9; }
+  .btn.small{ padding:8px 14px; font-size:11px; }
+  .btn.danger:hover{ border-color:#ff2158; color:#ff2158; }
+
+  .status{
+    font-family:var(--mono); font-size:12px; color:var(--muted-2); margin:-14px 0 20px;
+    min-height:1.4em;
+  }
+  .status.ok{ color:#3ddc84; }
+  .status.err{ color:var(--accent); }
+
+  .card{
+    border:1px solid var(--line); background:var(--bg-panel); padding:24px; margin-bottom:20px;
+  }
+  .card-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:16px; cursor:pointer; }
+  .card-head h3{ font-family:var(--display); text-transform:uppercase; font-size:19px; }
+  .card-head .meta{ font-family:var(--mono); font-size:11px; color:var(--muted-2); margin-top:6px; }
+  .card-head .toggle{ font-family:var(--mono); color:var(--muted); font-size:20px; user-select:none; }
+  .card-body{ margin-top:20px; display:none; }
+  .card.open .card-body{ display:block; }
+  .card.open .toggle{ color:var(--accent); }
+
+  label{ display:block; font-family:var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin:16px 0 6px; }
+  label:first-child{ margin-top:0; }
+  input[type="text"], textarea, select{
+    width:100%; background:var(--bg); border:1px solid var(--line); color:var(--ink);
+    padding:11px 13px; font-family:var(--body); font-size:14px;
+  }
+  input[type="text"]:focus, textarea:focus, select:focus{ outline:none; border-color:var(--accent); }
+  textarea{ resize:vertical; min-height:64px; font-family:var(--body); }
+  .row{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .row3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+  @media (max-width:640px){ .row, .row3{ grid-template-columns:1fr; } }
+
+  .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+  .chip{
+    display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11px;
+    padding:5px 6px 5px 10px; border:1px solid var(--line); color:var(--muted);
+  }
+  .chip button{
+    background:none; border:none; color:var(--muted-2); cursor:pointer; font-size:14px; line-height:1; padding:0 2px;
+  }
+  .chip button:hover{ color:var(--accent); }
+  .chip-input{ display:flex; gap:8px; margin-top:10px; }
+  .chip-input input{ flex:1; }
+
+  .chapters-table{ margin-top:10px; border-top:1px solid var(--line-soft); }
+  .chapter-row-wrap{ padding:10px 0; border-bottom:1px solid var(--line-soft); }
+  .chapter-row{
+    display:grid; grid-template-columns:70px 1fr 90px 1fr auto; gap:10px; align-items:center;
+  }
+  .chapter-row input[type="text"]{ padding:8px 10px; font-size:13px; }
+  .chapter-row .soon-label{ display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11px; color:var(--muted); white-space:nowrap; }
+  .chapter-synopsis{
+    width:100%; margin-top:8px; font-size:12.5px; min-height:44px; resize:vertical;
+  }
+  @media (max-width:760px){
+    .chapter-row{ grid-template-columns:1fr; }
+  }
+
+  .card-actions{ display:flex; justify-content:space-between; margin-top:20px; flex-wrap:wrap; gap:10px; }
+
+  .empty-hint{ color:var(--muted-2); font-family:var(--mono); font-size:13px; padding:40px 0; text-align:center; }
+
+  .warn-box{
+    border:1px solid var(--accent); background:rgba(255,33,88,.06); padding:18px 20px;
+    font-size:13px; color:var(--muted); margin-bottom:28px; line-height:1.6;
+  }
+  .warn-box b{ color:var(--ink); }
+
+  #fileInput{ display:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Paradox<span>Comics</span> — Админка</h1>
+  <p class="sub">Здесь можно добавлять и редактировать манги и главы без правки кода. Изменения нужно скачать как <span class="mono">data.json</span> и загрузить этим файлом на хостинг вместо старого — сайт не сохраняет их сам, потому что работает без сервера.</p>
+
+  <div class="warn-box">
+    <b>Важно:</b> эта страница не имеет реальной защиты — если её найдут по прямой ссылке, содержимое будет видно (пароль ниже, если включён, только отпугивает случайных людей, а не защищает данные — код виден любому в исходнике страницы). Не публикуйте ссылку на неё и не индексируйте в поиске. Для настоящей защиты нужен сервер с авторизацией.
+  </div>
+
+  <div class="toolbar">
+    <button class="btn" id="loadCurrentBtn">Загрузить текущий data.json</button>
+    <button class="btn" id="importBtn">Загрузить файл с диска…</button>
+    <input type="file" id="fileInput" accept="application/json">
+    <button class="btn" id="addMangaBtn">+ Добавить мангу</button>
+    <button class="btn solid" id="exportBtn">Скачать data.json</button>
+  </div>
+  <div class="status" id="status"></div>
+
+  <div id="mangaList"></div>
+  <p class="empty-hint" id="emptyHint" style="display:none;">Пока пусто. Нажмите «Загрузить текущий data.json» или «+ Добавить мангу».</p>
+
+</div>
+
+<script>
+  // ============ (НЕОБЯЗАТЕЛЬНАЯ) ПРОСТАЯ ЗАГЛУШКА-ПАРОЛЬ ============
+  // Это не настоящая защита (см. предупреждение на странице) — просто отпугивает
+  // случайных посетителей. Впишите значение в кавычки, чтобы включить проверку,
+  // оставьте пустым '', чтобы отключить полностью.
+  const ADMIN_PASSWORD = '';
+
+  if(ADMIN_PASSWORD){
+    const entered = prompt('Введите пароль администратора:');
+    if(entered !== ADMIN_PASSWORD){
+      document.body.innerHTML = '<div style="padding:60px;font-family:monospace;color:#8d8d99;">Доступ закрыт.</div>';
+      throw new Error('Неверный пароль');
+    }
+  }
+
+  // ============ СОСТОЯНИЕ ============
+  let manga = []; // рабочий массив манги, который редактируем в памяти
+  let openCardId = null;
+
+  const mangaListEl = document.getElementById('mangaList');
+  const emptyHint = document.getElementById('emptyHint');
+  const statusEl = document.getElementById('status');
+
+  function setStatus(text, type){
+    statusEl.textContent = text;
+    statusEl.className = 'status' + (type ? ' ' + type : '');
+  }
+
+  function escapeHtml(str){
+    return String(str ?? '').replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+  }
+
+  const TRANSLIT = {
+    а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'e',ж:'zh',з:'z',и:'i',й:'y',к:'k',л:'l',
+    м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'h',ц:'ts',ч:'ch',ш:'sh',
+    щ:'sch',ъ:'',ы:'y',ь:'',э:'e',ю:'yu',я:'ya'
+  };
+  function slugify(title){
+    const lower = String(title || '').toLowerCase();
+    const translit = lower.split('').map(ch => TRANSLIT[ch] ?? ch).join('');
+    return translit
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .slice(0, 60) || ('manga-' + Date.now());
+  }
+
+  function makeUniqueId(baseId, skipIndex){
+    let id = baseId;
+    let n = 2;
+    while(manga.some((m, i) => m.id === id && i !== skipIndex)){
+      id = baseId + '-' + n;
+      n++;
+    }
+    return id;
+  }
+
+  // ============ ЗАГРУЗКА / ИМПОРТ / ЭКСПОРТ ============
+  async function loadCurrentDataJson(){
+    try{
+      const res = await fetch('data.json', { cache: 'no-store' });
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const payload = await res.json();
+      manga = payload.manga || [];
+      openCardId = null;
+      render();
+      setStatus('Загружено из data.json: ' + manga.length + ' манг(и).', 'ok');
+    } catch(e){
+      setStatus('Не удалось загрузить data.json рядом со страницей (' + e.message + '). Можно начать с нуля или загрузить файл с диска.', 'err');
+    }
+  }
+
+  document.getElementById('loadCurrentBtn').addEventListener('click', loadCurrentDataJson);
+
+  document.getElementById('importBtn').addEventListener('click', () => {
+    document.getElementById('fileInput').click();
+  });
+  document.getElementById('fileInput').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const payload = JSON.parse(reader.result);
+        manga = payload.manga || [];
+        openCardId = null;
+        render();
+        setStatus('Загружено из файла «' + file.name + '»: ' + manga.length + ' манг(и).', 'ok');
+      } catch(err){
+        setStatus('Не удалось прочитать файл — это точно data.json? (' + err.message + ')', 'err');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const payload = { manga };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'data.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setStatus('data.json скачан — загрузите его на хостинг вместо старого файла.', 'ok');
+  });
+
+  document.getElementById('addMangaBtn').addEventListener('click', () => {
+    const newManga = {
+      id: makeUniqueId('novaya-manga'),
+      title: 'Новая манга',
+      desc: '',
+      glyph: '?',
+      rating: '12+',
+      genres: [],
+      chapters: []
+    };
+    manga.unshift(newManga);
+    openCardId = newManga.id;
+    render();
+    setStatus('Добавлена новая манга — заполните поля ниже.', 'ok');
+  });
+
+  // ============ РЕНДЕР СПИСКА ============
+  function render(){
+    emptyHint.style.display = manga.length === 0 ? 'block' : 'none';
+    mangaListEl.innerHTML = manga.map((m, idx) => renderCard(m, idx)).join('');
+    bindCardEvents();
+  }
+
+  function renderCard(m, idx){
+    const isOpen = m.id === openCardId;
+    const chaptersHtml = (m.chapters || []).map((ch, ci) => renderChapterRow(ch, idx, ci)).join('');
+    const genresHtml = (m.genres || []).map((g, gi) =>
+      '<span class="chip">' + escapeHtml(g) + '<button type="button" data-remove-genre="' + idx + ':' + gi + '">✕</button></span>'
+    ).join('');
+
+    return '' +
+    '<div class="card' + (isOpen ? ' open' : '') + '" data-card-idx="' + idx + '">' +
+      '<div class="card-head" data-toggle-idx="' + idx + '">' +
+        '<div>' +
+          '<h3>' + escapeHtml(m.title || '(без названия)') + '</h3>' +
+          '<div class="meta">id: ' + escapeHtml(m.id) + ' · ' + (m.chapters ? m.chapters.length : 0) + ' глав(ы) · ' + escapeHtml(m.rating || '—') + '</div>' +
+        '</div>' +
+        '<div class="toggle">' + (isOpen ? '−' : '+') + '</div>' +
+      '</div>' +
+      '<div class="card-body">' +
+
+        '<label>Название</label>' +
+        '<input type="text" data-field="title" data-idx="' + idx + '" value="' + escapeHtml(m.title) + '">' +
+
+        '<label>Описание (короткое, показывается на карточке)</label>' +
+        '<textarea data-field="desc" data-idx="' + idx + '">' + escapeHtml(m.desc) + '</textarea>' +
+
+        '<div class="row3">' +
+          '<div>' +
+            '<label>Символ на обложке (иероглиф/эмодзи/буква)</label>' +
+            '<input type="text" data-field="glyph" data-idx="' + idx + '" value="' + escapeHtml(m.glyph) + '" maxlength="4">' +
+          '</div>' +
+          '<div>' +
+            '<label>Возрастной рейтинг</label>' +
+            '<select data-field="rating" data-idx="' + idx + '">' +
+              ['6+','12+','16+','18+'].map(r => '<option value="' + r + '"' + (m.rating === r ? ' selected' : '') + '>' + r + '</option>').join('') +
+            '</select>' +
+          '</div>' +
+          '<div>' +
+            '<label>Технический id (латиницей, для ссылок)</label>' +
+            '<input type="text" data-field="id" data-idx="' + idx + '" value="' + escapeHtml(m.id) + '">' +
+          '</div>' +
+        '</div>' +
+
+        '<label>Жанры</label>' +
+        '<div class="chips">' + genresHtml + '</div>' +
+        '<div class="chip-input">' +
+          '<input type="text" placeholder="Например: Драма — и нажмите Enter" data-genre-input="' + idx + '">' +
+          '<button type="button" class="btn small" data-add-genre="' + idx + '">Добавить</button>' +
+        '</div>' +
+
+        '<label style="margin-top:28px;">Главы</label>' +
+        '<div class="chapters-table">' + chaptersHtml + '</div>' +
+        '<div style="margin-top:12px;">' +
+          '<button type="button" class="btn small" data-add-chapter="' + idx + '">+ Добавить главу</button>' +
+        '</div>' +
+
+        '<div class="card-actions">' +
+          '<button type="button" class="btn danger small" data-delete-idx="' + idx + '">Удалить мангу</button>' +
+        '</div>' +
+
+      '</div>' +
+    '</div>';
+  }
+
+  function renderChapterRow(ch, mangaIdx, chIdx){
+    return '' +
+    '<div class="chapter-row-wrap">' +
+      '<div class="chapter-row">' +
+        '<input type="text" placeholder="01" value="' + escapeHtml(ch.num) + '" data-ch-field="num" data-manga-idx="' + mangaIdx + '" data-ch-idx="' + chIdx + '">' +
+        '<input type="text" placeholder="Название главы" value="' + escapeHtml(ch.title) + '" data-ch-field="title" data-manga-idx="' + mangaIdx + '" data-ch-idx="' + chIdx + '">' +
+        '<label class="soon-label"><input type="checkbox" ' + (ch.soon ? 'checked' : '') + ' data-ch-field="soon" data-manga-idx="' + mangaIdx + '" data-ch-idx="' + chIdx + '"> Скоро</label>' +
+        '<input type="text" placeholder="img: путь к файлу (необязательно)" value="' + escapeHtml(ch.img || '') + '" data-ch-field="img" data-manga-idx="' + mangaIdx + '" data-ch-idx="' + chIdx + '">' +
+        '<button type="button" class="btn small danger" data-remove-chapter="' + mangaIdx + ':' + chIdx + '">✕</button>' +
+      '</div>' +
+      '<textarea class="chapter-synopsis" placeholder="О чём глава (необязательно) — по этому тексту тоже работает поиск на сайте" data-ch-field="synopsis" data-manga-idx="' + mangaIdx + '" data-ch-idx="' + chIdx + '">' + escapeHtml(ch.synopsis || '') + '</textarea>' +
+    '</div>';
+  }
+
+  // ============ ОБРАБОТЧИКИ (навешиваются заново после каждого render) ============
+  function bindCardEvents(){
+    mangaListEl.querySelectorAll('[data-toggle-idx]').forEach(el => {
+      el.addEventListener('click', () => {
+        const idx = parseInt(el.dataset.toggleIdx, 10);
+        openCardId = (manga[idx].id === openCardId) ? null : manga[idx].id;
+        render();
+      });
+    });
+
+    mangaListEl.querySelectorAll('[data-field]').forEach(el => {
+      const evt = el.tagName === 'SELECT' ? 'change' : 'input';
+      el.addEventListener(evt, () => {
+        const idx = parseInt(el.dataset.idx, 10);
+        const field = el.dataset.field;
+        if(field === 'id'){
+          const clean = slugify(el.value) || el.value.trim();
+          manga[idx].id = makeUniqueId(clean, idx);
+          if(openCardId && manga[idx] === manga.find(m => m.id === openCardId)) openCardId = manga[idx].id;
+        } else {
+          manga[idx][field] = el.value;
+        }
+        // не перерисовываем весь список при каждой букве — только шапку карточки обновит следующий render()
+      });
+    });
+
+    mangaListEl.querySelectorAll('[data-add-genre]').forEach(btn => {
+      const addFn = () => {
+        const idx = parseInt(btn.dataset.addGenre, 10);
+        const input = mangaListEl.querySelector('[data-genre-input="' + idx + '"]');
+        const value = input.value.trim();
+        if(!value) return;
+        manga[idx].genres = manga[idx].genres || [];
+        if(!manga[idx].genres.includes(value)) manga[idx].genres.push(value);
+        input.value = '';
+        openCardId = manga[idx].id;
+        render();
+      };
+      btn.addEventListener('click', addFn);
+      const idx = btn.dataset.addGenre;
+      mangaListEl.querySelector('[data-genre-input="' + idx + '"]').addEventListener('keydown', e => {
+        if(e.key === 'Enter'){ e.preventDefault(); addFn(); }
+      });
+    });
+
+    mangaListEl.querySelectorAll('[data-remove-genre]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const [idx, gi] = btn.dataset.removeGenre.split(':').map(Number);
+        manga[idx].genres.splice(gi, 1);
+        openCardId = manga[idx].id;
+        render();
+      });
+    });
+
+    mangaListEl.querySelectorAll('[data-add-chapter]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.addChapter, 10);
+        manga[idx].chapters = manga[idx].chapters || [];
+        const nextNum = String(manga[idx].chapters.length + 1).padStart(2, '0');
+        manga[idx].chapters.push({ num: nextNum, title: '', soon: true });
+        openCardId = manga[idx].id;
+        render();
+      });
+    });
+
+    mangaListEl.querySelectorAll('[data-remove-chapter]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const [mi, ci] = btn.dataset.removeChapter.split(':').map(Number);
+        manga[mi].chapters.splice(ci, 1);
+        openCardId = manga[mi].id;
+        render();
+      });
+    });
+
+    mangaListEl.querySelectorAll('[data-ch-field]').forEach(el => {
+      const evt = el.type === 'checkbox' ? 'change' : 'input';
+      el.addEventListener(evt, () => {
+        const mi = parseInt(el.dataset.mangaIdx, 10);
+        const ci = parseInt(el.dataset.chIdx, 10);
+        const field = el.dataset.chField;
+        if(field === 'soon'){
+          manga[mi].chapters[ci].soon = el.checked;
+          if(!el.checked) delete manga[mi].chapters[ci].soon; // soon:false не нужен, просто убираем поле
+        } else if(field === 'img' || field === 'synopsis'){
+          if(el.value.trim()) manga[mi].chapters[ci][field] = el.value.trim();
+          else delete manga[mi].chapters[ci][field];
+        } else {
+          manga[mi].chapters[ci][field] = el.value;
+        }
+      });
+    });
+
+    mangaListEl.querySelectorAll('[data-delete-idx]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.deleteIdx, 10);
+        if(!confirm('Удалить «' + (manga[idx].title || 'эту мангу') + '» из списка? Это действие можно отменить, просто не скачивая data.json.')) return;
+        manga.splice(idx, 1);
+        openCardId = null;
+        render();
+      });
+    });
+  }
+
+  // Стартуем с попытки подгрузить существующий data.json автоматически
+  loadCurrentDataJson();
+</script>
+</body>
+</html>

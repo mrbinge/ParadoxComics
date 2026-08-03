@@ -337,6 +337,33 @@
   }
   @media (max-width:480px){ .search-box.open .search-input{ width:150px; } }
 
+  .search-results{
+    position:absolute; top:calc(100% + 8px); right:0; width:340px; max-width:80vw;
+    background:var(--bg-panel-2); border:1px solid var(--line);
+    max-height:360px; overflow-y:auto; z-index:60;
+    opacity:0; transform:translateY(-6px); pointer-events:none;
+    transition:opacity .2s ease, transform .2s ease;
+  }
+  .search-results.show{ opacity:1; transform:translateY(0); pointer-events:auto; }
+  .search-stats{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--muted-2); padding:10px 16px; border-bottom:1px solid var(--line-soft);
+  }
+  .search-result-item{
+    display:block; width:100%; text-align:left; background:none; border:none;
+    padding:14px 16px; border-bottom:1px solid var(--line-soft); cursor:pointer; transition:background .2s ease;
+  }
+  .search-result-item:last-child{ border-bottom:none; }
+  .search-result-item:hover{ background:var(--bg-panel); }
+  .search-result-title{
+    font-family:var(--display); text-transform:uppercase; font-size:13.5px; letter-spacing:.02em; color:var(--ink);
+    display:flex; justify-content:space-between; gap:8px; align-items:baseline;
+  }
+  .search-result-title .type{ font-family:var(--mono); font-size:10px; color:var(--muted-2); text-transform:none; flex-shrink:0; }
+  .search-result-snippet{ font-family:var(--body); font-size:12.5px; color:var(--muted); margin-top:5px; line-height:1.5; }
+  .search-result-snippet mark{ background:none; color:var(--accent); font-weight:600; }
+  @media (max-width:480px){ .search-results{ width:260px; } }
+
   .recent-shelf{ margin-top:48px; }
   .recent-shelf-label{
     font-family:var(--mono); font-size:11px; letter-spacing:.16em; text-transform:uppercase;
@@ -817,33 +844,22 @@
         </div>
         <p>Оригинальные комиксы и манга Paradox Comics. Не забудьте поделиться ссылкой с друзьями.</p>
         <div class="search-box" id="searchBox">
-          <button class="search-toggle" id="searchToggle" aria-label="Поиск по названию">
+          <button class="search-toggle" id="searchToggle" aria-label="Поиск по названию и главам">
             <svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"></circle><path d="M20 20l-5-5"></path></svg>
           </button>
-          <input type="text" class="search-input" id="searchInput" placeholder="Поиск по названию…" autocomplete="off">
+          <input type="text" class="search-input" id="searchInput" placeholder="Поиск по мангам и главам…" autocomplete="off">
+          <div class="search-results" id="searchResults"></div>
         </div>
         <button class="search-toggle" id="notifyToggle" aria-label="Уведомления о новых главах" title="Уведомления о новых главах">
           <svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0112 0c0 5 2 6 2 6H4s2-1 2-6"></path><path d="M9.5 20a2.5 2.5 0 005 0"></path></svg>
         </button>
       </div>
 
-      <div class="filter-bar reveal">
+      <div class="filter-bar reveal" id="filterBar">
         <button class="filter-btn active" data-filter="all">Все</button>
         <button class="filter-btn" data-filter="favorites">★ Избранное</button>
-        <button class="filter-btn" data-filter="drama">Драма</button>
-        <button class="filter-btn" data-filter="mystic">Мистика</button>
-        <button class="filter-btn" data-filter="comedy">Комедия</button>
-        <button class="filter-btn" data-filter="romance">Романтика</button>
-        <button class="filter-btn" data-filter="fantasy">Фэнтези</button>
-        <button class="filter-btn" data-filter="shoujo">Сёдзё</button>
-        <button class="filter-btn" data-filter="schoolfantasy">Школьное фэнтези</button>
-        <button class="filter-btn" data-filter="absurd">Абсурд</button>
-        <button class="filter-btn" data-filter="scifi">Фантастика</button>
-        <button class="filter-btn" data-filter="cyberpunk">Киберпанк</button>
-        <button class="filter-btn" data-filter="dystopia">Антиутопия</button>
-        <button class="filter-btn" data-filter="adventure">Приключения</button>
-        <button class="filter-btn" data-filter="blackhumor">Чёрный юмор</button>
-        <button class="filter-btn" data-filter="adult">18+</button>
+        <!-- кнопки жанров вставляются JS перед кнопкой 18+, на основе data.json -->
+        <button class="filter-btn" id="filterBtnAdult" data-filter="18+">18+</button>
       </div>
 
       <div class="gallery-carousel">
@@ -854,48 +870,7 @@
           <svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
         </button>
         <div class="gallery-grid reveal" id="galleryGrid">
-        <div class="art-card" data-manga-id="alaya-tush" data-genres="drama,mystic,fantasy">
-          <button class="fav-btn" data-fav-toggle aria-label="В избранное"><svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.9 6.4.6-4.8 4.3 1.4 6.3L12 17l-5.6 3.1 1.4-6.3-4.8-4.3 6.4-.6z"/></svg></button><div class="read-indicator" data-read-indicator title="Статус прочтения"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg></div>
-          <div class="plate"></div><div class="dots"></div><div class="glyph">壱</div>
-          <div class="cap"><b>Алая Тушь</b><span>История про Ичика, парня из приюта, что получил странное письмо</span>
-            <div class="cap-meta"><span class="genre-chip">Драма</span><span class="genre-chip">Мистика</span><span class="genre-chip">Фэнтези</span><span class="genre-chip rating-16">16+</span></div>
-          </div>
-        </div>
-        <div class="art-card" data-manga-id="milashka-yumi" data-genres="romance,comedy,shoujo">
-          <button class="fav-btn" data-fav-toggle aria-label="В избранное"><svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.9 6.4.6-4.8 4.3 1.4 6.3L12 17l-5.6 3.1 1.4-6.3-4.8-4.3 6.4-.6z"/></svg></button><div class="read-indicator" data-read-indicator title="Статус прочтения"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg></div>
-          <div class="plate"></div><div class="dots"></div><div class="glyph">弐</div>
-          <div class="cap"><b>Милашка Юми</b><span>На райском острове у всех есть любовь, кроме Милашки Юми</span>
-            <div class="cap-meta"><span class="genre-chip">Романтика</span><span class="genre-chip">Комедия</span><span class="genre-chip">Сёдзё</span><span class="genre-chip rating-16">16+</span></div>
-          </div>
-        </div>
-        <div class="art-card" data-manga-id="novenkiy" data-genres="comedy,schoolfantasy,absurd">
-          <button class="fav-btn" data-fav-toggle aria-label="В избранное"><svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.9 6.4.6-4.8 4.3 1.4 6.3L12 17l-5.6 3.1 1.4-6.3-4.8-4.3 6.4-.6z"/></svg></button><div class="read-indicator" data-read-indicator title="Статус прочтения"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg></div>
-          <div class="plate"></div><div class="dots"></div><div class="glyph">参</div>
-          <div class="cap"><b>Новенький из параллельного класса</b><span>История Сато, что переехал в очередной город и пошел в казалось бы обычную школу</span>
-            <div class="cap-meta"><span class="genre-chip">Комедия</span><span class="genre-chip">Школьное фэнтези</span><span class="genre-chip">Абсурд</span><span class="genre-chip rating-12">12+</span></div>
-          </div>
-        </div>
-        <div class="art-card" data-manga-id="potatos" data-genres="comedy,drama,adult,absurd">
-          <button class="fav-btn" data-fav-toggle aria-label="В избранное"><svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.9 6.4.6-4.8 4.3 1.4 6.3L12 17l-5.6 3.1 1.4-6.3-4.8-4.3 6.4-.6z"/></svg></button><div class="read-indicator" data-read-indicator title="Статус прочтения"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg></div>
-          <div class="plate"></div><div class="dots"></div><div class="glyph">四</div>
-          <div class="cap"><b>POTATOS</b><span>История о Спаде, Тейтер, Чипе и Фрае и их группе, что была популярна в нулевые годы</span>
-            <div class="cap-meta"><span class="genre-chip">Комедия</span><span class="genre-chip">Драма</span><span class="genre-chip">Абсурд</span><span class="genre-chip age rating-18">18+</span></div>
-          </div>
-        </div>
-        <div class="art-card" data-manga-id="ehoborgi" data-genres="scifi,cyberpunk,dystopia">
-          <button class="fav-btn" data-fav-toggle aria-label="В избранное"><svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.9 6.4.6-4.8 4.3 1.4 6.3L12 17l-5.6 3.1 1.4-6.3-4.8-4.3 6.4-.6z"/></svg></button><div class="read-indicator" data-read-indicator title="Статус прочтения"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg></div>
-          <div class="plate"></div><div class="dots"></div><div class="glyph">伍</div>
-          <div class="cap"><b>Эхоборги</b><span>Комикс по рассказу, которой покажет изнанку корпорации KERN INC.</span>
-            <div class="cap-meta"><span class="genre-chip">Фантастика</span><span class="genre-chip">Киберпанк</span><span class="genre-chip">Антиутопия</span><span class="genre-chip rating-16">16+</span></div>
-          </div>
-        </div>
-        <div class="art-card" data-manga-id="tim-i-sol" data-genres="comedy,adventure,adult,blackhumor">
-          <button class="fav-btn" data-fav-toggle aria-label="В избранное"><svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.9 6.4.6-4.8 4.3 1.4 6.3L12 17l-5.6 3.1 1.4-6.3-4.8-4.3 6.4-.6z"/></svg></button><div class="read-indicator" data-read-indicator title="Статус прочтения"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg></div>
-          <div class="plate"></div><div class="dots"></div><div class="glyph">六</div>
-          <div class="cap"><b>Тим и Сол</b><span>О двух межвременных контрабандистах-неудачниках, что вечно попадают в неприятности</span>
-            <div class="cap-meta"><span class="genre-chip">Комедия</span><span class="genre-chip">Приключения</span><span class="genre-chip">Чёрный юмор</span><span class="genre-chip age rating-18">18+</span></div>
-          </div>
-        </div>
+          <!-- карточки манги генерируются JS из data.json -->
         </div>
       </div>
       <p class="empty-state" id="emptyState" style="display:none; color:var(--muted-2); font-family:var(--mono); font-size:13px; margin-top:24px;">По этому фильтру пока ничего нет.</p>
@@ -1118,57 +1093,58 @@
     heroLines.appendChild(s);
   }
 
-  // Manga modal
-  const mangaData = {
-    'alaya-tush': {
-      title: 'Алая Тушь',
-      desc: 'История про Ичика, парня из приюта, что получил странное письмо.',
-      // Когда появятся реальные сканы — добавь каждой главе поле img: 'путь/к/файлу.jpg'
-      // (это будет одна длинная картинка на главу). Без img показывается плейсхолдер.
-      chapters: [
-        {num:'01', title:'Кисть, что помнит'},
-        {num:'02', title:'Город под тушью'},
-        {num:'03', title:'Имя, которое нельзя рисовать'},
-        {num:'04', title:'Мастерская на Пепельной', soon:true}
-      ]
-    },
-    'milashka-yumi': {
-      title: 'Милашка Юми',
-      desc: 'На райском острове у всех есть любовь, кроме Милашки Юми.',
-      chapters: [
-        {num:'01', title:'Пролог', soon:true},
-        {num:'02', title:'Глава 1', soon:true}
-      ]
-    },
-    'novenkiy': {
-      title: 'Новенький из параллельного класса',
-      desc: 'История Сато, что переехал в очередной город и пошёл в казалось бы обычную школу.',
-      chapters: [
-        {num:'01', title:'День первый', soon:true}
-      ]
-    },
-    'potatos': {
-      title: 'POTATOS',
-      desc: 'История о Спаде, Тейтер, Чипе и Фрае и их группе, что была популярна в нулевые годы.',
-      chapters: [
-        {num:'01', title:'Пилот', soon:true}
-      ]
-    },
-    'ehoborgi': {
-      title: 'Эхоборги',
-      desc: 'Комикс по рассказу, который покажет изнанку корпорации KERN INC.',
-      chapters: [
-        {num:'01', title:'Пробуждение', soon:true}
-      ]
-    },
-    'tim-i-sol': {
-      title: 'Тим и Сол',
-      desc: 'О двух межвременных контрабандистах-неудачниках, что вечно попадают в неприятности.',
-      chapters: [
-        {num:'01', title:'Начало конца', soon:true}
-      ]
-    }
-  };
+  // ============ ДАННЫЕ МАНГИ (из data.json) ============
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+
+  const galleryGridEl = document.getElementById('galleryGrid');
+  const filterBtnAdult = document.getElementById('filterBtnAdult');
+
+  function renderGalleryCards(mangaList){
+    galleryGridEl.innerHTML = mangaList.map(m => {
+      const genres = m.genres || [];
+      const genreChips = genres.map(g => '<span class="genre-chip">' + escapeHtml(g) + '</span>').join('');
+      let ratingChip = '';
+      if(m.rating){
+        const ratingNum = m.rating.replace('+', '');
+        const ratingClass = m.rating === '18+' ? 'genre-chip age rating-' + ratingNum : 'genre-chip rating-' + ratingNum;
+        ratingChip = '<span class="' + ratingClass + '">' + escapeHtml(m.rating) + '</span>';
+      }
+      return '<div class="art-card" data-manga-id="' + escapeHtml(m.id) + '" data-genres="' + genres.map(escapeHtml).join(',') + '" data-rating="' + escapeHtml(m.rating || '') + '">' +
+        '<button class="fav-btn" data-fav-toggle aria-label="В избранное"><svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.9 6.4.6-4.8 4.3 1.4 6.3L12 17l-5.6 3.1 1.4-6.3-4.8-4.3 6.4-.6z"/></svg></button>' +
+        '<div class="read-indicator" data-read-indicator title="Статус прочтения"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg></div>' +
+        '<div class="plate"></div><div class="dots"></div><div class="glyph">' + escapeHtml(m.glyph || '') + '</div>' +
+        '<div class="cap"><b>' + escapeHtml(m.title) + '</b><span>' + escapeHtml(m.desc || '') + '</span>' +
+          '<div class="cap-meta">' + genreChips + ratingChip + '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function renderFilterBar(mangaList){
+    const allGenres = [...new Set(mangaList.flatMap(m => m.genres || []))];
+    const html = allGenres.map(g =>
+      '<button class="filter-btn" data-filter="' + escapeHtml(g) + '">' + escapeHtml(g) + '</button>'
+    ).join('');
+    filterBtnAdult.insertAdjacentHTML('beforebegin', html);
+  }
+
+  let mangaData = {};
+  let searchIndex = [];
+
+  fetch('data.json')
+    .then(res => res.json())
+    .catch(() => ({ manga: [] })) // не удалось загрузить data.json — сайт откроется с пустой библиотекой
+    .then(payload => {
+      const mangaList = payload.manga || [];
+      mangaList.forEach(m => { mangaData[m.id] = m; });
+
+      renderGalleryCards(mangaList);
+      renderFilterBar(mangaList);
+      buildSearchIndex(mangaList);
 
   const mangaModalOverlay = document.getElementById('mangaModalOverlay');
   const mangaModal = document.getElementById('mangaModal');
@@ -1388,30 +1364,29 @@
     });
   });
 
-  // Library genre filters + поиск по названию
+  // Library genre filters (поиск по тексту теперь отдельно, см. ниже)
   const filterBtns = document.querySelectorAll('.filter-btn');
   const artCards = document.querySelectorAll('.art-card');
   const emptyState = document.getElementById('emptyState');
   const searchBox = document.getElementById('searchBox');
   const searchToggle = document.getElementById('searchToggle');
   const searchInput = document.getElementById('searchInput');
+  const searchResults = document.getElementById('searchResults');
 
   function applyFilters(){
     const activeBtn = document.querySelector('.filter-btn.active');
     const filter = activeBtn ? activeBtn.dataset.filter : 'all';
-    const query = searchInput.value.trim().toLowerCase();
     let visibleCount = 0;
 
     artCards.forEach(card => {
       const genres = (card.dataset.genres || '').split(',');
-      const matchesGenre = filter === 'all'
+      const show = filter === 'all'
         ? true
         : filter === 'favorites'
           ? favorites.has(card.dataset.mangaId)
-          : genres.includes(filter);
-      const title = (card.querySelector('.cap b')?.textContent || '').toLowerCase();
-      const matchesSearch = query === '' || title.includes(query);
-      const show = matchesGenre && matchesSearch;
+          : filter === '18+'
+            ? card.dataset.rating === '18+'
+            : genres.includes(filter);
       card.classList.toggle('hide', !show);
       if(show) visibleCount++;
     });
@@ -1429,21 +1404,113 @@
     });
   });
 
+  // ============ ПОИСК ПО МАНГАМ И ГЛАВАМ ============
+  // Индекс строится один раз из mangaList: манга целиком (название, описание, жанры)
+  // и каждая вышедшая глава отдельно (номер, название, синопсис) — так поиск находит
+  // конкретную главу, а не только мангу целиком.
+  function buildSearchIndex(mangaList){
+    searchIndex = [];
+    mangaList.forEach(m => {
+      searchIndex.push({
+        type: 'manga', mangaId: m.id, chapterIdx: null,
+        title: m.title,
+        text: [m.title, m.desc, ...(m.genres || [])].filter(Boolean).join(' ')
+      });
+      (m.chapters || []).forEach((ch, i) => {
+        if(ch.soon) return; // главы "Скоро" ещё нечего искать
+        searchIndex.push({
+          type: 'chapter', mangaId: m.id, chapterIdx: i,
+          title: m.title + ' — Глава ' + ch.num + ' · ' + ch.title,
+          text: [ch.title, ch.synopsis].filter(Boolean).join(' ')
+        });
+      });
+    });
+  }
+
+  function debounce(fn, delay){
+    let t;
+    return function(...args){ clearTimeout(t); t = setTimeout(() => fn.apply(this, args), delay); };
+  }
+
+  function highlightMatch(text, query){
+    const escaped = escapeHtml(text);
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return escaped.replace(new RegExp('(' + escapedQuery + ')', 'ig'), '<mark>$1</mark>');
+  }
+
+  function buildSnippet(text, query){
+    const lower = text.toLowerCase();
+    const idx = lower.indexOf(query.toLowerCase());
+    if(idx === -1) return text.slice(0, 100);
+    const start = Math.max(0, idx - 40);
+    const end = Math.min(text.length, idx + query.length + 60);
+    return (start > 0 ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : '');
+  }
+
+  function performSearch(){
+    const query = searchInput.value.trim();
+    if(query.length < 2){
+      searchResults.classList.remove('show');
+      return;
+    }
+    const q = query.toLowerCase();
+    const matches = searchIndex.filter(entry => entry.text.toLowerCase().includes(q));
+
+    if(matches.length === 0){
+      searchResults.innerHTML = '<div class="search-stats">Ничего не найдено</div>';
+    } else {
+      searchResults.innerHTML =
+        '<div class="search-stats">Найдено: ' + matches.length + '</div>' +
+        matches.slice(0, 20).map((entry, i) => {
+          const snippet = buildSnippet(entry.text, query);
+          return '<button type="button" class="search-result-item" data-result-idx="' + i + '">' +
+            '<div class="search-result-title"><span>' + escapeHtml(entry.title) + '</span>' +
+              '<span class="type">' + (entry.type === 'chapter' ? 'глава' : 'манга') + '</span></div>' +
+            '<div class="search-result-snippet">' + highlightMatch(snippet, query) + '</div>' +
+          '</button>';
+        }).join('');
+      searchResults._matches = matches.slice(0, 20);
+    }
+    searchResults.classList.add('show');
+  }
+  const performSearchDebounced = debounce(performSearch, 220);
+
+  searchResults.addEventListener('click', e => {
+    const btn = e.target.closest('[data-result-idx]');
+    if(!btn) return;
+    const entry = searchResults._matches[parseInt(btn.dataset.resultIdx, 10)];
+    searchResults.classList.remove('show');
+    searchBox.classList.remove('open');
+    searchInput.value = '';
+    if(entry.type === 'manga'){
+      openMangaModal(entry.mangaId);
+    } else {
+      const rect = btn.getBoundingClientRect();
+      inkTransition(rect.left + rect.width / 2, rect.top + rect.height / 2, () => {
+        openReader(entry.mangaId, entry.chapterIdx);
+      });
+    }
+  });
+
+  document.addEventListener('click', e => {
+    if(!searchBox.contains(e.target)) searchResults.classList.remove('show');
+  });
+
   searchToggle.addEventListener('click', () => {
     const isOpen = searchBox.classList.toggle('open');
     if(isOpen){
       searchInput.focus();
     } else {
       searchInput.value = '';
-      applyFilters();
+      searchResults.classList.remove('show');
     }
   });
-  searchInput.addEventListener('input', applyFilters);
+  searchInput.addEventListener('input', performSearchDebounced);
   document.addEventListener('keydown', e => {
     if(e.key === 'Escape' && searchBox.classList.contains('open')){
       searchBox.classList.remove('open');
       searchInput.value = '';
-      applyFilters();
+      searchResults.classList.remove('show');
     }
   });
 
@@ -1812,6 +1879,8 @@
 
   updateNotifyToggleUI();
   checkForNewChapters();
+
+    }); // конец fetch('data.json').then(payload => { ... })
 
 </script>
 </body>
