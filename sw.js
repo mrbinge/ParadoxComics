@@ -1,19 +1,20 @@
 // Service Worker для Paradox Comics
 // Версия кэша — меняйте при каждом значимом обновлении сайта,
 // чтобы у читателей подтянулась свежая версия вместо старой из кэша.
-const CACHE_VERSION = 'paradox-comics-v1';
+const CACHE_VERSION = 'paradox-comics-v3';
 
 // "Скелет" приложения — то, что нужно, чтобы сайт открылся офлайн.
 const APP_SHELL = [
   './',
   './index.html',
+  './404.html',
+  './data.json',
   './manifest.json',
-  './icons/icon-16.png',
-  './icons/icon-32.png',
-  './icons/icon-180.png',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/icon-512-maskable.png'
+  './icon-16.png',
+  './icon-32.png',
+  './icon-180.png',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 // ---------- УСТАНОВКА: кладём скелет приложения в кэш ----------
@@ -78,8 +79,8 @@ self.addEventListener('push', event => {
   const title = data.title || 'Paradox Comics';
   const options = {
     body: data.body || 'Вышла новая глава!',
-    icon: './icons/icon-192.png',
-    badge: './icons/icon-192.png',
+    icon: './icon-192.png',
+    badge: './icon-192.png',
     data: { url: data.url || './index.html' }
   };
 
