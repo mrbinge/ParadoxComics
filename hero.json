@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "base": {
+    "color": "",
+    "spacing": 18,
+    "wave": {
+      "speed": 1,
+      "length": 0.018,
+      "alphaMin": 0.04,
+      "alphaMax": 0.24,
+      "radiusMin": 0.5,
+      "radiusMax": 1.5
+    },
+    "mask": {
+      "on": true,
+      "x": 0.7,
+      "y": 0.3,
+      "rx": 0.7,
+      "ry": 0.6
+    }
+  },
+  "override": null,
+  "shapes": [],
+  "effects": [
+    {
+      "id": "newyear",
+      "name": "Новый год",
+      "kind": "shape",
+      "on": true,
+      "schedule": [
+        {
+          "from": "12-20",
+          "to": "01-10"
+        }
+      ],
+      "shape": "star",
+      "motion": "roll",
+      "x": 0.68,
+      "y": 0.32,
+      "size": 0.2,
+      "unmask": true,
+      "roll": {
+        "duration": 3,
+        "pause": 2,
+        "steps": 5,
+        "margin": 0.12,
+        "spin": true
+      }
+    },
+    {
+      "id": "valentine",
+      "name": "14 февраля",
+      "kind": "shape",
+      "on": true,
+      "schedule": [
+        {
+          "from": "02-12",
+          "to": "02-15"
+        }
+      ],
+      "shape": "heart",
+      "motion": "cycle",
+      "x": 0.68,
+      "y": 0.32,
+      "size": 0.2,
+      "cycle": {
+        "length": 30,
+        "beatPeriod": 0.9,
+        "born": 2.6,
+        "startScale": 0.1,
+        "expandAt": 24,
+        "waveAt": 27.4,
+        "waveLen": 4.4,
+        "maxScale": 2.15,
+        "hole": 0.78,
+        "waveWidth": 64,
+        "ripple": true,
+        "beatStrength": 0.1
+      }
+    },
+    {
+      "id": "snowflake",
+      "name": "Снежинка",
+      "kind": "shape",
+      "on": true,
+      "schedule": [],
+      "shape": "snowflake",
+      "motion": "static",
+      "x": 0.68,
+      "y": 0.32,
+      "size": 0.2
+    },
+    {
+      "id": "snowfall",
+      "name": "Снегопад",
+      "kind": "fall",
+      "on": true,
+      "schedule": [],
+      "count": 110,
+      "speed": 60,
+      "speedVar": 0.5,
+      "size": 2.2,
+      "sizeVar": 0.6,
+      "sway": 20,
+      "swayFreq": 0.6,
+      "angle": 8,
+      "trail": 0,
+      "brightness": 1,
+      "unmask": true,
+      "color": "#ffffff"
+    },
+    {
+      "id": "salute",
+      "name": "Салют",
+      "kind": "fireworks",
+      "on": true,
+      "schedule": [],
+      "interval": 3.2,
+      "intervalVar": 0.5,
+      "rise": 1.1,
+      "life": 2.6,
+      "burstSize": 0.3,
+      "particles": 64,
+      "gravity": 60,
+      "type": "sphere",
+      "colors": [
+        "#ff2158",
+        "#ffd24a",
+        "#2be8ff"
+      ],
+      "trail": true,
+      "sparkle": true,
+      "brightness": 1,
+      "unmask": true
+    }
+  ]
+}

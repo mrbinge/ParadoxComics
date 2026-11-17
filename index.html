@@ -7,9 +7,12 @@
 <meta name="description" content="Paradox Comics — тёмное фэнтези манга. Главы, арты, поддержка проекта.">
 <title>Paradox Comics</title>
 <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="icon-16.png">
-<link rel="apple-touch-icon" href="icon-180.png">
+<!-- Иконки сайта лежат в папке icons/:
+     icon-16, icon-32 — значок во вкладке браузера; icon-180 — иконка на экране iPhone;
+     icon-192, icon-512 — установка как приложения (Android) и уведомления (см. manifest.json) -->
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/icon-16.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -198,14 +201,10 @@
   }
   @media (max-width:640px){ .hero{ padding:96px 20px 80px; } }
 
+  /* затухание точек к краям считает сам движок шапки (см. initHeroEngine), CSS-маска не нужна */
   .hero-halftone{
     position:absolute; inset:0; z-index:0; display:block;
-    mask-image: radial-gradient(ellipse 70% 60% at 70% 30%, black 10%, transparent 70%);
-    -webkit-mask-image: radial-gradient(ellipse 70% 60% at 70% 30%, black 10%, transparent 70%);
   }
-  /* когда фигура движется по всей ширине (например, катится звёздочка) — маска
-     не нужна, иначе фигуру будет обрезать по краям */
-  .hero-halftone.no-mask{ mask-image:none; -webkit-mask-image:none; }
   .hero-lines{
     position:absolute; inset:0; z-index:0; pointer-events:none; opacity:.5;
   }
@@ -1296,11 +1295,153 @@
     heroLines.appendChild(s);
   }
 
-  // ============ ЖИВОЙ СКРИНТОН В HERO ============
-  // Сетка точек, которую "качают" три плавно движущихся источника волн —
-  // их интерференция сама по себе непрерывно меняет узор (то рябь, то полосы,
-  // то что-то среднее), без явного переключения "режимов".
-  (function initHeroCanvas(){
+  // ============ ЖИВОЙ СКРИНТОН В HERO: ДВИЖОК ЭФФЕКТОВ ============
+  // Сетка точек, по которой бежит спокойная волна. Поверх неё работают «эффекты» —
+  // фигуры из точек (сердце, снежинка, звёздочка и свои), падающие точки (снег, дождь)
+  // и салют. Что показывать, когда и как, описано в файле hero.json рядом с сайтом
+  // (его редактирует админка, раздел «Эффекты шапки»). Если файла нет или он не
+  // открылся — работает набор ниже, он повторяет прежний вид шапки.
+  // Всё считается от времени (а не накапливается кадр за кадром), поэтому любой
+  // момент можно перемотать — на этом держится предпросмотр в админке.
+  const HERO_DEFAULT = {
+    "version": 1,
+    "base": {
+      "color": "",
+      "spacing": 18,
+      "wave": {
+        "speed": 1,
+        "length": 0.018,
+        "alphaMin": 0.04,
+        "alphaMax": 0.24,
+        "radiusMin": 0.5,
+        "radiusMax": 1.5
+      },
+      "mask": {
+        "on": true,
+        "x": 0.7,
+        "y": 0.3,
+        "rx": 0.7,
+        "ry": 0.6
+      }
+    },
+    "override": null,
+    "shapes": [],
+    "effects": [
+      {
+        "id": "newyear",
+        "name": "Новый год",
+        "kind": "shape",
+        "on": true,
+        "schedule": [
+          {
+            "from": "12-20",
+            "to": "01-10"
+          }
+        ],
+        "shape": "star",
+        "motion": "roll",
+        "x": 0.68,
+        "y": 0.32,
+        "size": 0.2,
+        "unmask": true,
+        "roll": {
+          "duration": 3,
+          "pause": 2,
+          "steps": 5,
+          "margin": 0.12,
+          "spin": true
+        }
+      },
+      {
+        "id": "valentine",
+        "name": "14 февраля",
+        "kind": "shape",
+        "on": true,
+        "schedule": [
+          {
+            "from": "02-12",
+            "to": "02-15"
+          }
+        ],
+        "shape": "heart",
+        "motion": "cycle",
+        "x": 0.68,
+        "y": 0.32,
+        "size": 0.2,
+        "cycle": {
+          "length": 30,
+          "beatPeriod": 0.9,
+          "born": 2.6,
+          "startScale": 0.1,
+          "expandAt": 24,
+          "waveAt": 27.4,
+          "waveLen": 4.4,
+          "maxScale": 2.15,
+          "hole": 0.78,
+          "waveWidth": 64,
+          "ripple": true,
+          "beatStrength": 0.1
+        }
+      },
+      {
+        "id": "snowflake",
+        "name": "Снежинка",
+        "kind": "shape",
+        "on": true,
+        "schedule": [],
+        "shape": "snowflake",
+        "motion": "static",
+        "x": 0.68,
+        "y": 0.32,
+        "size": 0.2
+      },
+      {
+        "id": "snowfall",
+        "name": "Снегопад",
+        "kind": "fall",
+        "on": true,
+        "schedule": [],
+        "count": 110,
+        "speed": 60,
+        "speedVar": 0.5,
+        "size": 2.2,
+        "sizeVar": 0.6,
+        "sway": 20,
+        "swayFreq": 0.6,
+        "angle": 8,
+        "trail": 0,
+        "brightness": 1,
+        "unmask": true,
+        "color": "#ffffff"
+      },
+      {
+        "id": "salute",
+        "name": "Салют",
+        "kind": "fireworks",
+        "on": true,
+        "schedule": [],
+        "interval": 3.2,
+        "intervalVar": 0.5,
+        "rise": 1.1,
+        "life": 2.6,
+        "burstSize": 0.3,
+        "particles": 64,
+        "gravity": 60,
+        "type": "sphere",
+        "colors": [
+          "#ff2158",
+          "#ffd24a",
+          "#2be8ff"
+        ],
+        "trail": true,
+        "sparkle": true,
+        "brightness": 1,
+        "unmask": true
+      }
+    ]
+  };
+
+  (function initHeroEngine(){
     try{
     const canvas = document.getElementById('heroCanvas');
     const heroEl = document.querySelector('.hero');
@@ -1308,56 +1449,78 @@
     const ctx = canvas.getContext('2d');
     if(!ctx) return;
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const embedded = window.parent !== window; // страница открыта внутри предпросмотра админки
 
     const accentHex = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#ff2158';
-    const m = accentHex.replace('#', '').match(/.{1,2}/g) || ['ff', '21', '58'];
-    const [ar, ag, ab] = m.map(x => parseInt(x, 16));
 
-    const SPACING = 18;
-    let w = 0, h = 0, dpr = 1, t = 0, running = false, rafId = null;
-
-    // ============ ПРАЗДНИЧНЫЕ КАРТИНКИ НА ФОНЕ ============
-    // Впиши сюда имя, чтобы включить рисунок вручную (проверить, как выглядит,
-    // или показать вне расписания): 'heart' | 'snowflake' | 'spark' | null.
-    // null — рисунок отключён, дальше решает расписание по датам ниже.
-    const heroShapeOverride = null;
-
-    // Автоматическое расписание по датам "ММ-ДД" (год не важен, сравнение только
-    // по месяцу и числу — расписание само работает каждый год).
-    // Диапазон может переходить через Новый год (например "12-20" → "01-10").
-    const HERO_SHAPE_SCHEDULE = [
-      { shape: 'spark', from: '12-20', to: '01-10' }, // Новый год / Рождество — катящаяся звёздочка
-      { shape: 'heart', from: '02-12', to: '02-15' }  // 14 февраля
-    ];
-
+    // ---------- мелкие помощники ----------
+    function hexRgb(hex, fallback){
+      const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+      if(!m) return fallback;
+      const n = parseInt(m[1], 16);
+      return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    }
+    function clamp01(x){ return x < 0 ? 0 : x > 1 ? 1 : x; }
+    function smoothstep(a, b, x){ const u = clamp01((x - a) / (b - a)); return u * u * (3 - 2 * u); }
+    function easeInOutQuad(x){ return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2; }
+    function easeInOutCubic(x){ return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; }
+    function easeOutQuad(x){ return 1 - (1 - x) * (1 - x); }
+    function easeOutCubic(x){ return 1 - Math.pow(1 - x, 3); }
+    // «случайность», которая всегда одна и та же для одного номера — так салют и снег
+    // можно перематывать и они не «прыгают»
+    function rnd(n){ const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
     function inDateRange(mmdd, from, to){
       if(from <= to) return mmdd >= from && mmdd <= to;
       return mmdd >= from || mmdd <= to; // диапазон через Новый год
     }
-    function getScheduledShape(){
-      const now = new Date();
-      const mmdd = String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
-      const found = HERO_SHAPE_SCHEDULE.find(s => inDateRange(mmdd, s.from, s.to));
-      return found ? found.shape : null;
+    function mergeDefaults(target, defs){
+      Object.keys(defs).forEach(k => {
+        const d = defs[k];
+        if(target[k] === undefined) target[k] = (d && typeof d === 'object') ? JSON.parse(JSON.stringify(d)) : d;
+        else if(d && typeof d === 'object' && !Array.isArray(d) && target[k] && typeof target[k] === 'object') mergeDefaults(target[k], d);
+      });
+      return target;
     }
-    const activeShape = heroShapeOverride || getScheduledShape();
-    if(activeShape === 'spark') canvas.classList.add('no-mask');
 
+    // ---------- значения по умолчанию для настроек ----------
+    const BASE_DEF = {
+      color: '', spacing: 18,
+      wave: { speed: 1, length: 0.018, alphaMin: 0.04, alphaMax: 0.24, radiusMin: 0.5, radiusMax: 1.5 },
+      mask: { on: true, x: 0.7, y: 0.3, rx: 0.7, ry: 0.6 }
+    };
+    const EFFECT_DEF = {
+      shape: {
+        kind: 'shape', on: true, always: false, schedule: [], color: '', unmask: false,
+        shape: 'heart', motion: 'static', x: 0.68, y: 0.32, size: 0.2, dotSize: 1, brightness: 1,
+        roll: { duration: 3, pause: 2, steps: 5, margin: 0.12, spin: true },
+        beat: { period: 0.9, strength: 0.1, ripple: true },
+        cycle: { length: 30, beatPeriod: 0.9, born: 2.6, startScale: 0.1, expandAt: 24, waveAt: 27.4, waveLen: 4.4, maxScale: 2.15, hole: 0.78, waveWidth: 64, ripple: true, beatStrength: 0.1 }
+      },
+      fall: {
+        kind: 'fall', on: true, always: false, schedule: [], color: '', unmask: true,
+        count: 110, speed: 60, speedVar: 0.5, size: 2.2, sizeVar: 0.6, sway: 20, swayFreq: 0.6, angle: 8, trail: 0, brightness: 1
+      },
+      fireworks: {
+        kind: 'fireworks', on: true, always: false, schedule: [], color: '', unmask: true,
+        interval: 3.2, intervalVar: 0.5, rise: 1.1, life: 2.6, burstSize: 0.3, particles: 64, gravity: 60,
+        type: 'sphere', colors: ['#ff2158', '#ffd24a', '#2be8ff'], trail: true, sparkle: true, brightness: 1
+      }
+    };
+
+    // ---------- встроенные фигуры ----------
+    // Каждая возвращает 0..1 — насколько точка с нормализованными координатами
+    // (центр фигуры — (0,0), масштаб примерно -1..1) принадлежит фигуре.
     function distToSegment(px, py, ax, ay, bx, by){
       const abx = bx - ax, aby = by - ay;
       const t2 = Math.max(0, Math.min(1, ((px - ax) * abx + (py - ay) * aby) / (abx * abx + aby * aby || 1)));
       return Math.hypot(px - (ax + abx * t2), py - (ay + aby * t2));
     }
-
-    // Возвращает 0..1 — насколько точка с нормализованными координатами (центр
-    // фигуры — (0,0), масштаб примерно -1..1) принадлежит контуру/заливке фигуры.
-    function shapeValue(shape, nx, ny){
-      if(shape === 'heart'){
+    const SHAPES = {
+      heart: { bound: 1.4, f(nx, ny){
         const x = nx * 1.15, y = -ny * 1.15 + 0.35;
-        const val = Math.pow(x * x + y * y - 1, 3) - x * x * y * y * y;
-        return val <= 0 ? 1 : 0;
-      }
-      if(shape === 'snowflake'){
+        return (Math.pow(x * x + y * y - 1, 3) - x * x * y * y * y) <= 0 ? 1 : 0;
+      }},
+      snowflake: { bound: 1.2, f(nx, ny){
         const R = 1.05;
         let best = Infinity;
         for(let i = 0; i < 6; i++){
@@ -1367,143 +1530,461 @@
           [0.55, 0.8].forEach(f => {
             const bx = ex * f, by = ey * f;
             [1, -1].forEach(dir => {
-              const branchAngle = a + dir * Math.PI / 3;
-              const tx = bx + Math.cos(branchAngle) * 0.22;
-              const ty = by + Math.sin(branchAngle) * 0.22;
-              best = Math.min(best, distToSegment(nx, ny, bx, by, tx, ty));
+              const ba = a + dir * Math.PI / 3;
+              best = Math.min(best, distToSegment(nx, ny, bx, by, bx + Math.cos(ba) * 0.22, by + Math.sin(ba) * 0.22));
             });
           });
         }
         return best < 0.055 ? 1 : 0;
-      }
-      if(shape === 'spark'){
+      }},
+      star: { bound: 1.05, f(nx, ny){
         const d = Math.hypot(nx, ny);
-        const angle = Math.atan2(ny, nx) + (shapeValue._rotation || 0) + Math.PI / 2; // остриём вверх
-        const points = 5, outerR = 1, innerR = 0.42;
-        const seg = Math.PI / points;
-        let a = ((angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+        const angle = Math.atan2(ny, nx) + Math.PI / 2; // остриём вверх
+        const seg = Math.PI / 5;
+        const a = ((angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
         const sector = Math.floor(a / seg);
-        const localT = (a - sector * seg) / seg; // 0..1 внутри полу-сектора
-        const r1 = sector % 2 === 0 ? outerR : innerR;
-        const r2 = sector % 2 === 0 ? innerR : outerR;
+        const localT = (a - sector * seg) / seg;
+        const r1 = sector % 2 === 0 ? 1 : 0.42;
+        const r2 = sector % 2 === 0 ? 0.42 : 1;
         const r = r1 + (r2 - r1) * localT;
         return d < r ? Math.max(0, 1 - d / r) : 0;
+      }}
+    };
+    SHAPES.spark = SHAPES.star; // старое название
+
+    // Своя фигура — квадратная картинка из точек (bits: строки из 0 и 1), растягивается на -1..1
+    function bitmapShape(def){
+      const n = def.n | 0, rowsArr = def.bits || [];
+      if(n < 2 || rowsArr.length < n) return SHAPES.heart;
+      const g = new Uint8Array(n * n);
+      for(let y = 0; y < n; y++) for(let x = 0; x < n; x++) g[y * n + x] = rowsArr[y] && rowsArr[y][x] === '1' ? 1 : 0;
+      const at = (x, y) => (x < 0 || y < 0 || x >= n || y >= n) ? 0 : g[y * n + x];
+      return { bound: 1.02, f(nx, ny){
+        if(nx < -1 || nx > 1 || ny < -1 || ny > 1) return 0;
+        const u = (nx + 1) / 2 * n - 0.5, v = (ny + 1) / 2 * n - 0.5;
+        const x0 = Math.floor(u), y0 = Math.floor(v), fx = u - x0, fy = v - y0;
+        const val = at(x0, y0) * (1 - fx) * (1 - fy) + at(x0 + 1, y0) * fx * (1 - fy) + at(x0, y0 + 1) * (1 - fx) * fy + at(x0 + 1, y0 + 1) * fx * fy;
+        return val >= 0.5 ? 1 : 0;
+      }};
+    }
+
+    // ---------- состояние ----------
+    let cfg = null, shapeMap = {}, baseRgb = hexRgb(accentHex, [255, 33, 88]);
+    let W = 0, H = 0, dpr = 1, sp = 18, cols = 0, rows = 0, mask0 = null, running = false, rafId = null;
+    const clock = { t: 0, last: null, speed: 1, paused: false };
+    const ctrl = { solo: null };
+    let B = null; // буферы слоёв
+
+    function setConfig(raw){
+      const c = JSON.parse(JSON.stringify(raw || HERO_DEFAULT || { effects: [] }));
+      c.base = mergeDefaults(c.base || {}, BASE_DEF);
+      c.effects = (c.effects || []).map(e => {
+        const kind = EFFECT_DEF[e.kind] ? e.kind : 'shape';
+        const out = mergeDefaults(e, EFFECT_DEF[kind]);
+        out.kind = kind;
+        out._rgb = hexRgb(out.color, null);
+        out._colors = (out.colors || []).map(x => hexRgb(x, null)).filter(Boolean);
+        if(!out._colors.length) out._colors = [baseRgb];
+        return out;
+      });
+      shapeMap = {};
+      (c.shapes || []).forEach(s => { shapeMap[s.id] = bitmapShape(s); });
+      baseRgb = hexRgb(c.base.color, hexRgb(accentHex, [255, 33, 88]));
+      cfg = c;
+      sp = Math.max(6, Math.min(60, +c.base.spacing || 18));
+      resize();
+    }
+    function getShape(id){ return SHAPES[id] || shapeMap[id] || SHAPES.heart; }
+
+    // какие эффекты сегодня активны
+    let activeCache = [], activeAt = -1;
+    function activeEffects(now){
+      if(now - activeAt < 1 && activeCache) return activeCache;
+      activeAt = now;
+      const eff = cfg.effects;
+      let list;
+      if(ctrl.solo){ list = eff.filter(e => e.id === ctrl.solo); }
+      else if(cfg.override){ list = eff.filter(e => e.id === cfg.override); }
+      else {
+        const d = new Date();
+        const mmdd = String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        list = eff.filter(e => e.on && (e.always || (e.schedule || []).some(s => inDateRange(mmdd, s.from, s.to))));
       }
-      return 0;
+      activeCache = list;
+      return list;
     }
 
-    // ============ ДВИЖЕНИЕ ФИГУРЫ: КАТИТСЯ СЛЕВА НАПРАВО ШАГАМИ ============
-    // Каждые ROLL_DURATION секунд фигура прокатывается на очередной участок пути,
-    // затем PAUSE_DURATION секунд стоит на месте (итого один шаг — примерно 5 секунд,
-    // как просили), и так TOTAL_STEPS раз, пока не дойдёт до правого края.
-    // После этого путь начинается заново от левого края.
-    const ROLL_DURATION = 3;   // сколько секунд длится сам "прокат" за один шаг
-    const PAUSE_DURATION = 2;  // сколько секунд пауза после каждого шага (3с + 2с = 5с на шаг)
-    const STEP_DURATION = ROLL_DURATION + PAUSE_DURATION;
-    const TOTAL_STEPS = 5;     // сколько шагов нужно, чтобы пройти весь путь
-    const CYCLE_DURATION = STEP_DURATION * TOTAL_STEPS;
-    const rollStartTime = (typeof performance !== 'undefined' ? performance.now() : Date.now());
-
-    function easeInOutQuad(x){
-      return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+    // ---------- слои: что эффекты «дописывают» на сетку ----------
+    // Override — эффект перекрашивает/перерисовывает точку (фигура), Add — прибавляет свет (волна, снег, искры).
+    function alloc(){
+      const n = Math.max(1, cols * rows);
+      B = {
+        K: new Float32Array(n), OA: new Float32Array(n), OR: new Float32Array(n), OCR: new Float32Array(n), OCG: new Float32Array(n), OCB: new Float32Array(n),
+        AA: new Float32Array(n), AR: new Float32Array(n), CW: new Float32Array(n), CR: new Float32Array(n), CG: new Float32Array(n), CB: new Float32Array(n)
+      };
     }
-
-    function getShapePosition(){
-      const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
-      const elapsed = ((now - rollStartTime) / 1000) % CYCLE_DURATION;
-      const stepIndex = Math.floor(elapsed / STEP_DURATION);
-      const withinStep = elapsed - stepIndex * STEP_DURATION;
-
-      const rollProgress = withinStep < ROLL_DURATION
-        ? easeInOutQuad(withinStep / ROLL_DURATION)
-        : 1; // прокатились — дальше просто стоим до конца шага (пауза)
-
-      const totalProgress = (stepIndex + rollProgress) / TOTAL_STEPS; // 0..1 по всему пути
-      const marginX = w * 0.12;
-      const cx = marginX + (w - marginX * 2) * totalProgress;
-      const cy = h * 0.32;
-      const rotation = totalProgress * Math.PI * 2 * TOTAL_STEPS; // "катится" — крутится по мере движения
-      return { cx, cy, rotation };
+    function clearLayers(){ for(const k in B) B[k].fill(0); }
+    function setOv(i, k, a, r, rgb){
+      if(k <= 0) return;
+      const c = rgb || baseRgb, K0 = B.K[i], q = 1 - k;
+      B.OA[i] = B.OA[i] * q + a * k; B.OR[i] = B.OR[i] * q + r * k;
+      B.OCR[i] = B.OCR[i] * q + c[0] * k; B.OCG[i] = B.OCG[i] * q + c[1] * k; B.OCB[i] = B.OCB[i] * q + c[2] * k;
+      B.K[i] = K0 + k - K0 * k;
     }
-
-    function resize(){
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
-      w = heroEl.clientWidth;
-      h = heroEl.clientHeight;
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
-      canvas.style.width = w + 'px';
-      canvas.style.height = h + 'px';
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    function addCell(i, a, r, rgb){
+      B.AA[i] += a; B.AR[i] += r;
+      if(rgb){ B.CW[i] += a; B.CR[i] += rgb[0] * a; B.CG[i] += rgb[1] * a; B.CB[i] += rgb[2] * a; }
     }
-
-    function draw(){
-      t += 0.012;
-      ctx.clearRect(0, 0, w, h);
-
-      // Позиция фигуры: если это катящаяся звёздочка — берём её текущее место
-      // на пути; для остальных фигур (сердце, снежинка) — фиксированное место.
-      let shapeCx = w * 0.68, shapeCy = h * 0.32, shapeRotation = 0;
-      if(activeShape === 'spark'){
-        const pos = getShapePosition();
-        shapeCx = pos.cx; shapeCy = pos.cy; shapeRotation = pos.rotation;
+    // «брызг» света в любой точке экрана: делится между четырьмя ближайшими точками сетки
+    function splat(px, py, size, alpha, rgb){
+      const u = (px - sp / 2) / sp, v = (py - sp / 2) / sp;
+      const i0 = Math.floor(u), j0 = Math.floor(v), fx = u - i0, fy = v - j0;
+      for(let dj = 0; dj < 2; dj++){
+        const j = j0 + dj; if(j < 0 || j >= rows) continue;
+        for(let di = 0; di < 2; di++){
+          const i = i0 + di; if(i < 0 || i >= cols) continue;
+          const wgt = Math.pow((di ? fx : 1 - fx) * (dj ? fy : 1 - fy), 0.7);
+          if(wgt > 0.02) addCell(j * cols + i, alpha * wgt, size * wgt, rgb);
+        }
       }
-      const shapeR = Math.min(w, h) * 0.2;
-      shapeValue._rotation = shapeRotation;
+    }
+    // круглая вспышка радиусом rad пикселей
+    function disc(px, py, rad, alpha, size, rgb){
+      const i0 = Math.max(0, Math.floor((px - rad - sp / 2) / sp)), i1 = Math.min(cols - 1, Math.ceil((px + rad - sp / 2) / sp));
+      const j0 = Math.max(0, Math.floor((py - rad - sp / 2) / sp)), j1 = Math.min(rows - 1, Math.ceil((py + rad - sp / 2) / sp));
+      for(let j = j0; j <= j1; j++) for(let i = i0; i <= i1; i++){
+        const d = Math.hypot(sp / 2 + i * sp - px, sp / 2 + j * sp - py);
+        if(d < rad){ const k = 1 - d / rad; addCell(j * cols + i, alpha * k, size * k, rgb); }
+      }
+    }
 
-      for(let y = SPACING / 2; y < h; y += SPACING){
-        for(let x = SPACING / 2; x < w; x += SPACING){
-          // простая волна, бегущая слева направо, без беготни нескольких источников
-          const wave = Math.sin(x * 0.018 - t * 0.6);
-          const v = (wave + 1) / 2; // нормализуем в 0..1
-          let radius = 0.5 + v * 1.0;
-          let alpha = 0.04 + v * 0.2; // спокойный, немигающий диапазон яркости
+    // ============ ЭФФЕКТ: ФИГУРА ИЗ ТОЧЕК ============
+    function heartBeatBump(p){ return Math.exp(-Math.pow((p - 0.04) / 0.07, 2)) + 0.65 * Math.exp(-Math.pow((p - 0.3) / 0.08, 2)); }
 
-          if(activeShape){
-            const nx = (x - shapeCx) / shapeR;
-            const ny = (y - shapeCy) / shapeR;
-            const sv = shapeValue(activeShape, nx, ny);
-            if(sv > 0){
-              const pulse = 0.85 + 0.15 * Math.sin(t * 3 + (nx + ny) * 2);
-              radius = 1.8 + sv * 1.6 * pulse;   // ярче и заметнее (был 1.4 + sv*1.4)
-              alpha = Math.min(1, 0.6 + sv * 0.4 * pulse); // сильно ярче (был максимум 0.9)
+    // Положение, размер и «самочувствие» фигуры в данный момент времени
+    function shapeState(e, t){
+      const st = { cx: W * e.x, cy: H * e.y, scale: 1, rot: 0, hole: 0, bump: 0, alpha: 1, free: e.unmask ? 1 : 0, ripple: 0, beatP: 0, wave: null, look: 'classic' };
+      if(e.motion === 'roll'){
+        const r = e.roll, step = r.duration + r.pause, total = step * Math.max(1, r.steps), cycle = total;
+        const elapsed = t % cycle, idx = Math.floor(elapsed / step), within = elapsed - idx * step;
+        const prog = within < r.duration ? easeInOutQuad(within / r.duration) : 1;
+        const all = (idx + prog) / Math.max(1, r.steps);
+        const mx = W * r.margin;
+        st.cx = mx + (W - mx * 2) * all;
+        st.rot = r.spin ? all * Math.PI * 2 * r.steps : 0;
+      } else if(e.motion === 'beat'){
+        const b = e.beat, p = (t % b.period) / b.period, bump = reduceMotion ? 0 : heartBeatBump(p);
+        st.look = 'pulse'; st.bump = bump; st.beatP = p; st.scale = 1 + b.strength * bump;
+        st.ripple = b.ripple && !reduceMotion ? 0.28 * Math.pow(1 - p, 2) : 0;
+      } else if(e.motion === 'cycle'){
+        const c = e.cycle, len = Math.max(5, c.length);
+        const elapsed = reduceMotion ? c.born + 4 : t;
+        const idx = Math.floor(elapsed / len), ct = elapsed - idx * len;
+        const birth = clamp01(ct / Math.max(0.1, c.born));
+        const grow = easeInOutCubic(birth) + 0.1 * Math.sin(Math.PI * clamp01((birth - 0.55) / 0.45));
+        const birthScale = c.startScale + (1 - c.startScale) * grow;
+        const ex = easeInOutCubic(clamp01((ct - c.expandAt) / Math.max(0.1, c.waveAt - c.expandAt)));
+        let tau = -1;
+        if(ct >= c.waveAt) tau = ct - c.waveAt; else if(idx > 0) tau = ct + len - c.waveAt;
+        const waveP = (tau >= 0 && tau < c.waveLen) ? tau / c.waveLen : -1;
+        const amp = reduceMotion ? 0 : smoothstep(0.35, 1, birth) * (1 - 0.75 * ex);
+        const p = (ct % c.beatPeriod) / c.beatPeriod;
+        const bump = amp * heartBeatBump(p);
+        let scale = birthScale * (1 + (c.maxScale - 1) * ex);
+        if(ct >= c.waveAt) scale += 0.3 * clamp01(tau / 2.6);
+        scale *= 1 + c.beatStrength * bump;
+        st.look = 'pulse'; st.scale = scale; st.hole = c.hole * Math.pow(ex, 1.1); st.bump = bump; st.beatP = p;
+        st.alpha = ct >= c.waveAt ? 1 - smoothstep(0, 0.45, tau / c.waveLen) : 1;
+        st.free = e.unmask ? 1 : (waveP >= 0 ? 1 - smoothstep(0.72, 1, waveP) : ex);
+        st.ripple = (c.ripple && amp > 0.02) ? amp * 0.28 * Math.pow(1 - p, 2) : 0;
+        st.wave = waveP >= 0 ? waveP : null;
+      }
+      return st;
+    }
+
+    function renderShape(e, F, t, tb){
+      const st = shapeState(e, t);
+      F.free = Math.max(F.free, st.free);
+      const def = getShape(e.shape), rgb = e._rgb;
+      const R = Math.min(W, H) * e.size * st.scale;
+      const cosr = Math.cos(st.rot), sinr = Math.sin(st.rot);
+      const baseR = Math.min(W, H) * e.size;
+
+      // тихая рябь от каждого удара и волна, уходящая по всей поверхности
+      if(st.ripple > 0 || st.wave !== null){
+        const c = e.cycle;
+        let front = 0, wA = 0, ww = 64;
+        if(st.wave !== null){
+          const dMax = Math.max(Math.hypot(st.cx, st.cy), Math.hypot(W - st.cx, st.cy), Math.hypot(st.cx, H - st.cy), Math.hypot(W - st.cx, H - st.cy));
+          const f0 = baseR * c.maxScale * 0.7, fEnd = dMax + 260;
+          front = f0 + (fEnd - f0) * (1 - Math.pow(1 - st.wave, 1.5));
+          wA = Math.pow(1 - st.wave, 0.55);
+          ww = Math.max(8, c.waveWidth);
+        }
+        for(let j = 0; j < rows; j++) for(let i = 0; i < cols; i++){
+          const x = sp / 2 + i * sp, y = sp / 2 + j * sp, d = Math.hypot(x - st.cx, y - st.cy), idx = j * cols + i;
+          if(st.ripple > 0){
+            const rr = R * 1.05 + st.beatP * baseR * 1.4, dd = (d - rr) / 22;
+            addCell(idx, st.ripple * Math.exp(-dd * dd), 0, rgb);
+          }
+          if(st.wave !== null){
+            const k0 = (d - front) / ww, k1 = (d - front + ww * 2) / ww, k2 = (d - front + ww * 4) / ww;
+            const bump = wA * (Math.exp(-k0 * k0) + 0.55 * Math.exp(-k1 * k1) + 0.3 * Math.exp(-k2 * k2));
+            if(bump > 0.004) addCell(idx, 0.65 * bump, 2.2 * bump, rgb);
+          }
+        }
+      }
+
+      if(st.alpha <= 0.01) return;
+      const soft = R < sp * 6, off = sp * 0.4, ext = R * def.bound * (st.rot !== 0 ? 1.42 : 1) + sp;
+      const i0 = Math.max(0, Math.floor((st.cx - ext - sp / 2) / sp)), i1 = Math.min(cols - 1, Math.ceil((st.cx + ext - sp / 2) / sp));
+      const j0 = Math.max(0, Math.floor((st.cy - ext - sp / 2) / sp)), j1 = Math.min(rows - 1, Math.ceil((st.cy + ext - sp / 2) / sp));
+      const sample = (px, py) => {
+        let nx = (px - st.cx) / R, ny = (py - st.cy) / R;
+        if(st.rot !== 0){ const rx = nx * cosr - ny * sinr, ry = nx * sinr + ny * cosr; nx = rx; ny = ry; }
+        const v = def.f(nx, ny);
+        if(v <= 0) return 0;
+        if(st.hole > 0.001 && def.f(nx / st.hole, ny / st.hole) > 0) return 0;
+        return v;
+      };
+      const dm = e.dotSize || 1, br = e.brightness == null ? 1 : e.brightness;
+      for(let j = j0; j <= j1; j++) for(let i = i0; i <= i1; i++){
+        const x = sp / 2 + i * sp, y = sp / 2 + j * sp;
+        const sv = soft ? (sample(x, y) + sample(x + off, y) + sample(x - off, y) + sample(x, y + off) + sample(x, y - off)) / 5 : sample(x, y);
+        if(sv <= 0) continue;
+        const nx = (x - st.cx) / R, ny = (y - st.cy) / R; // для мерцания — без поворота, как раньше
+        let rad, alp;
+        if(st.look === 'classic'){
+          const pulse = 0.85 + 0.15 * Math.sin(tb * 3 + (nx + ny) * 2);
+          rad = 1.8 + sv * 1.6 * pulse; alp = Math.min(1, 0.6 + sv * 0.4 * pulse);
+          setOv(j * cols + i, 1, Math.min(1, alp * br), rad * dm, rgb);
+        } else {
+          const pulse = 0.92 + 0.08 * Math.sin(tb * 3 + (nx + ny) * 2);
+          rad = (1.8 + 1.6 * pulse) * (1 + 0.3 * st.bump);
+          alp = Math.min(1, (0.62 + 0.38 * pulse) * (1 + 0.2 * st.bump));
+          setOv(j * cols + i, sv * st.alpha, Math.min(1, alp * br), rad * dm, rgb);
+        }
+      }
+    }
+
+    // ============ ЭФФЕКТ: ПАДАЮЩИЕ ТОЧКИ (снег, дождь, конфетти…) ============
+    function renderFall(e, F, t){
+      F.free = Math.max(F.free, e.unmask ? 1 : 0);
+      const rgb = e._rgb, n = Math.max(0, Math.min(600, e.count | 0));
+      const ang = e.angle * Math.PI / 180, vx = Math.sin(ang), vy = Math.cos(ang);
+      const padX = 60, padY = 60, spanX = W + padX * 2, spanY = H + padY * 2;
+      const mod = (a, m) => ((a % m) + m) % m;
+      const step = sp * 0.6, trailN = e.trail > 0 ? Math.min(14, Math.ceil(e.trail / step)) : 0;
+      for(let i = 0; i < n; i++){
+        const r1 = rnd(i * 5 + 1), r2 = rnd(i * 5 + 2), r3 = rnd(i * 5 + 3), r4 = rnd(i * 5 + 4), r5 = rnd(i * 5 + 5);
+        const spd = e.speed * (1 - e.speedVar * 0.5 + e.speedVar * r1);
+        const size = Math.max(0.3, e.size * (1 - e.sizeVar * 0.5 + e.sizeVar * r2));
+        const sway = e.sway * Math.sin(t * e.swayFreq * 6.283 * (0.6 + r2 * 0.8) + r5 * 6.283);
+        const x = mod(r4 * spanX + spd * vx * t + sway, spanX) - padX;
+        const y = mod(r3 * spanY + spd * vy * t, spanY) - padY;
+        const a = e.brightness * (0.6 + 0.4 * r5);
+        splat(x, y, size, a, rgb);
+        for(let k = 1; k <= trailN; k++){
+          const f = 1 - k / (trailN + 1);
+          splat(x - vx * k * step, y - vy * k * step, size * f, a * f * 0.6, rgb);
+        }
+      }
+    }
+
+    // ============ ЭФФЕКТ: САЛЮТ ============
+    function burstVector(type, j, P, k){
+      if(type === 'ring'){ const a = 6.283 * j / P; return [Math.cos(a), Math.sin(a)]; }
+      if(type === 'heart'){
+        const a = 6.283 * j / P;
+        return [16 * Math.pow(Math.sin(a), 3) / 17, -(13 * Math.cos(a) - 5 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a)) / 17];
+      }
+      if(type === 'star'){
+        const a = 6.283 * j / P, seg = Math.PI / 5, ang = a + Math.PI / 2;
+        const aa = ((ang % 6.283) + 6.283) % 6.283, sec = Math.floor(aa / seg), lt = (aa - sec * seg) / seg;
+        const r1 = sec % 2 === 0 ? 1 : 0.42, r2 = sec % 2 === 0 ? 0.42 : 1, r = r1 + (r2 - r1) * lt;
+        return [Math.cos(a) * r, Math.sin(a) * r];
+      }
+      const a = 6.283 * rnd(k * 977 + j * 3 + 1), rad = Math.sqrt(rnd(k * 977 + j * 3 + 2)); // шар
+      return [Math.cos(a) * rad, Math.sin(a) * rad];
+    }
+    function renderFireworks(e, F, t){
+      F.free = Math.max(F.free, e.unmask ? 1 : 0);
+      const total = e.rise + e.life, stepT = Math.max(0.4, e.interval);
+      const kMax = Math.floor(t / stepT), kMin = Math.max(0, Math.floor((t - total) / stepT) - 1);
+      const cols2 = e._colors, minWH = Math.min(W, H);
+      for(let k = kMin; k <= kMax; k++){
+        const Tk = Math.max(0, k * stepT + (rnd(k * 11 + 1) - 0.5) * e.intervalVar * stepT);
+        const tau = t - Tk;
+        if(tau < 0 || tau > total) continue;
+        const x0 = W * (0.12 + 0.76 * rnd(k * 11 + 2)), yb = H * (0.12 + 0.4 * rnd(k * 11 + 3));
+        const rgb = e._rgb || cols2[Math.floor(rnd(k * 11 + 4) * cols2.length) % cols2.length];
+        const R = minWH * e.burstSize * (0.8 + 0.4 * rnd(k * 11 + 5));
+        if(tau < e.rise){
+          const p = easeOutQuad(tau / e.rise), y = H + 12 + (yb - H - 12) * p, x = x0 + Math.sin(tau * 9 + k) * 6 * (1 - p);
+          splat(x, y, 1.8, 0.95 * e.brightness, rgb);
+          for(let j = 1; j <= 7; j++) splat(x, y + j * sp * 0.7, 1.4 * (1 - j / 8), 0.7 * (1 - j / 8) * e.brightness, rgb);
+        } else {
+          const s = tau - e.rise, u = s / e.life;
+          if(s < 0.18) disc(x0, yb, R * 0.22 * (0.4 + 0.6 * s / 0.18), 0.75 * (1 - s / 0.18) * e.brightness, 1.0, rgb);
+          const fade = Math.pow(1 - u, 0.9), grow = easeOutCubic(Math.min(1, s / (e.life * 0.75)));
+          const P = Math.max(4, Math.min(160, e.particles | 0));
+          for(let j = 0; j < P; j++){
+            const v = burstVector(e.type, j, P, k);
+            const spread = e.type === 'sphere' ? 1 : (0.92 + 0.16 * rnd(k * 313 + j));
+            const flick = e.sparkle ? 0.7 + 0.3 * Math.sin(s * 28 + j * 1.7) : 1;
+            const px = x0 + v[0] * R * spread * grow, py = yb + v[1] * R * spread * grow + 0.5 * e.gravity * s * s;
+            const a = e.brightness * fade * flick;
+            splat(px, py, 2.1, a, rgb);
+            if(e.trail){
+              const g2 = easeOutCubic(Math.min(1, Math.max(0, s - 0.06) / (e.life * 0.75)));
+              splat(x0 + v[0] * R * spread * g2, yb + v[1] * R * spread * g2 + 0.5 * e.gravity * Math.max(0, s - 0.06) * Math.max(0, s - 0.06), 1.1, a * 0.45, rgb);
             }
           }
+        }
+      }
+    }
 
+    // ---------- кадр ----------
+    function resize(){
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = heroEl.clientWidth;
+      H = heroEl.clientHeight;
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if(!cfg) return;
+      cols = Math.max(0, Math.ceil((W - sp / 2) / sp));
+      rows = Math.max(0, Math.ceil((H - sp / 2) / sp));
+      alloc();
+      // затухание точек к краям (раньше это делала CSS-маска): ellipse rx ry at x y, чёрное с 10% до прозрачного на 70%
+      const m = cfg.base.mask;
+      mask0 = new Float32Array(Math.max(1, cols * rows));
+      for(let j = 0; j < rows; j++) for(let i = 0; i < cols; i++){
+        let v = 1;
+        if(m.on){
+          const mr = Math.hypot((sp / 2 + i * sp - W * m.x) / (W * m.rx), (sp / 2 + j * sp - H * m.y) / (H * m.ry));
+          v = 1 - clamp01((mr - 0.1) / 0.6);
+        }
+        mask0[j * cols + i] = v;
+      }
+    }
+
+    let lastReport = 0;
+    function draw(frameNow){
+      if(!cfg) return;
+      // часы: идут по реальному времени (не быстрее 0.1 с за кадр), умеют стоять и ускоряться — нужно предпросмотру
+      const nowMs = frameNow != null ? frameNow : (typeof performance !== 'undefined' ? performance.now() : Date.now());
+      if(clock.last == null) clock.last = nowMs;
+      const dt = Math.min(0.1, Math.max(0, (nowMs - clock.last) / 1000));
+      clock.last = nowMs;
+      if(!clock.paused) clock.t += dt * clock.speed;
+      const t = reduceMotion ? 6 : clock.t, tb = t * 0.72; // tb — прежний «внутренний» счётчик волны (0.012 за кадр при 60 к/с)
+
+      ctx.clearRect(0, 0, W, H);
+      clearLayers();
+      const F = { free: 0 };
+      const act = activeEffects(nowMs / 1000);
+      for(let n = 0; n < act.length; n++){
+        const e = act[n];
+        if(e.kind === 'shape') renderShape(e, F, t, tb);
+        else if(e.kind === 'fall') renderFall(e, F, t);
+        else if(e.kind === 'fireworks') renderFireworks(e, F, t);
+      }
+
+      const bw = cfg.base.wave, wp = t * 0.72 * 0.6 * bw.speed;
+      const colV = new Float32Array(cols);
+      for(let i = 0; i < cols; i++) colV[i] = (Math.sin((sp / 2 + i * sp) * bw.length - wp) + 1) / 2;
+      const pre = 'rgba(' + baseRgb[0] + ',' + baseRgb[1] + ',' + baseRgb[2] + ',';
+      for(let j = 0; j < rows; j++){
+        const y = sp / 2 + j * sp;
+        for(let i = 0; i < cols; i++){
+          const idx = j * cols + i, x = sp / 2 + i * sp, v = colV[i];
+          let radius = bw.radiusMin + v * (bw.radiusMax - bw.radiusMin);
+          let alpha = bw.alphaMin + v * (bw.alphaMax - bw.alphaMin);
+          let r = baseRgb[0], g = baseRgb[1], b = baseRgb[2];
+          radius += B.AR[idx]; alpha += B.AA[idx];
+          const cw = B.CW[idx];
+          if(cw > 0){
+            const tt = Math.min(1, cw * 2), inv = 1 / cw;
+            r += (B.CR[idx] * inv - r) * tt; g += (B.CG[idx] * inv - g) * tt; b += (B.CB[idx] * inv - b) * tt;
+          }
+          const K = B.K[idx];
+          if(K > 0){
+            // слой фигуры хранится уже умноженным на вес K, поэтому просто «подмешиваем» его к тому, что было
+            const q = 1 - K;
+            radius = radius * q + B.OR[idx]; alpha = alpha * q + B.OA[idx];
+            r = r * q + B.OCR[idx]; g = g * q + B.OCG[idx]; b = b * q + B.OCB[idx];
+          }
+          const m0 = mask0[idx];
+          alpha *= m0 + (1 - m0) * F.free;
+          if(alpha > 1) alpha = 1;
+          if(alpha < 0.002 || radius <= 0) continue;
           ctx.beginPath();
           ctx.arc(x, y, radius, 0, Math.PI * 2);
-          ctx.fillStyle = 'rgba(' + ar + ',' + ag + ',' + ab + ',' + alpha.toFixed(3) + ')';
+          ctx.fillStyle = (cw > 0 || K > 0) ? 'rgba(' + Math.round(r) + ',' + Math.round(g) + ',' + Math.round(b) + ',' + alpha.toFixed(3) + ')' : pre + alpha.toFixed(3) + ')';
           ctx.fill();
         }
       }
-      if(running) rafId = requestAnimationFrame(draw);
+      if(embedded && nowMs - lastReport > 100){
+        lastReport = nowMs;
+        try{ window.parent.postMessage({ type: 'pc-hero-time', t: clock.t, paused: clock.paused }, '*'); }catch(e){}
+      }
     }
-
-    function start(){ if(running || reduceMotion) return; running = true; rafId = requestAnimationFrame(draw); }
+    function loop(ts){ draw(ts); if(running) rafId = requestAnimationFrame(loop); }
+    function start(){ if(running || reduceMotion) return; running = true; rafId = requestAnimationFrame(loop); }
     function stop(){ running = false; if(rafId) cancelAnimationFrame(rafId); }
 
-    resize();
-    window.addEventListener('resize', resize);
-
-    if(reduceMotion){
-      draw(); // рисуем один статичный кадр вместо анимации — уважаем настройки ОС
-      return;
+    // ---------- связь с предпросмотром в админке ----------
+    function applyCtrl(c){
+      if('solo' in c){ ctrl.solo = c.solo || null; activeAt = -1; }
+      if('paused' in c) clock.paused = !!c.paused;
+      if('speed' in c) clock.speed = Math.max(0.05, +c.speed || 1);
+      if(typeof c.seek === 'number') clock.t = Math.max(0, c.seek);
+      if(c.restart) clock.t = 0;
+    }
+    window.__pcHero = { setConfig: (c) => { setConfig(c); activeAt = -1; }, ctrl: applyCtrl, clock, draw: () => draw(clock.last == null ? 0 : clock.last) };
+    if(embedded){
+      window.addEventListener('message', ev => {
+        if(ev.source !== window.parent) return;
+        const d = ev.data;
+        if(!d || typeof d !== 'object' || d.type !== 'pc-hero') return;
+        if(d.cfg){ setConfig(d.cfg); activeAt = -1; }
+        if(d.ctrl) applyCtrl(d.ctrl);
+        if(reduceMotion || !running) draw(clock.last == null ? 0 : clock.last);
+      });
     }
 
-    // не тратим ресурсы, пока hero не виден на экране
-    if('IntersectionObserver' in window){
-      const heroObserver = new IntersectionObserver(entries => {
-        entries.forEach(entry => entry.isIntersecting ? start() : stop());
-      }, { threshold: 0 });
-      heroObserver.observe(heroEl);
-    } else {
-      start();
+    // ---------- запуск ----------
+    function begin(){
+      window.addEventListener('resize', resize);
+      if(reduceMotion){ draw(0); return; } // один статичный кадр вместо анимации — уважаем настройки ОС
+      if('IntersectionObserver' in window){
+        const heroObserver = new IntersectionObserver(entries => {
+          entries.forEach(entry => entry.isIntersecting ? start() : stop());
+        }, { threshold: 0 });
+        heroObserver.observe(heroEl);
+      } else {
+        start();
+      }
+      document.addEventListener('visibilitychange', () => {
+        if(document.hidden) stop();
+        else if(heroEl.getBoundingClientRect().bottom > 0) start();
+      });
+      if(embedded){ try{ window.parent.postMessage({ type: 'pc-hero-ready' }, '*'); }catch(e){} }
     }
-
-    document.addEventListener('visibilitychange', () => {
-      if(document.hidden) stop();
-      else if(heroEl.getBoundingClientRect().bottom > 0) start();
-    });
+    // настройки берём из hero.json; если за 1.5 с не пришли (нет файла, файл:// и т.п.) — встроенные
+    let started = false;
+    function go(c){
+      if(started) return; started = true;
+      setConfig(c && c.effects ? c : HERO_DEFAULT);
+      begin();
+    }
+    try{
+      setTimeout(() => go(null), 1500);
+      fetch('hero.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).then(go, () => go(null));
+    }catch(e){ go(null); }
     } catch(e){
       // Canvas недоступен (заблокирован браузером/расширением и т.п.) —
       // просто остаёмся без анимации, остальной сайт продолжает работать.
@@ -2416,11 +2897,11 @@
     if('serviceWorker' in navigator){
       try{
         const reg = await navigator.serviceWorker.ready;
-        reg.showNotification(title, { body, icon: 'icon-192.png', badge: 'icon-192.png' });
+        reg.showNotification(title, { body, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png' });
         return;
       } catch(e){ /* просто используем Notification ниже как запасной вариант */ }
     }
-    new Notification(title, { body, icon: 'icon-192.png' });
+    new Notification(title, { body, icon: 'icons/icon-192.png' });
   }
   function checkForNewChapters(){
     if(!isNotifyEnabled()) return;
